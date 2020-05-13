@@ -1,29 +1,38 @@
 import random
 from dataclasses import dataclass
-from typing import Tuple, List, Optional
+from typing import List, Optional
 
-from games.game_general import Game, GameState, other_player
-from games.state_manager import StateManager
+from mcts.mcts_core.state_manager import StateManager
 
 
-@dataclass(eq=True, frozen=True)
-class NimState(GameState):
+@dataclass(eq=True)
+class NimGameConfig:
+    nim_initial_board_pieces: int = 10
+    nim_max_turn_pieces_remove: int = 3
+    starting_player: int = 0
+
+
+@dataclass(frozen=True)
+class NimState:
     num_pieces: int = -1
     player: int = -1  # should be the non-starting player when in initial_state
     initial_state: bool = False
 
 
 class NimStateManager(StateManager):
-
     def __init__(self, num_pieces: int, max_turn_pieces_remove: int, player_start: int):
         self._num_pieces = num_pieces
         self._max_turn_pieces_remove = max_turn_pieces_remove
         self._player_start = player_start
 
+    @staticmethod
+    def __other_player(player: int) -> int:
+        return (player + 1) % 2
+
     def get_initial_state(self) -> NimState:
         return NimState(
             num_pieces=self._num_pieces,
-            player=other_player(self._player_start),  # should be the non-starting player when in initial_state
+            player=self.__other_player(self._player_start),  # should be the non-starting player when in initial_state
             initial_state=True
         )
 
@@ -32,7 +41,7 @@ class NimStateManager(StateManager):
         return [
             NimState(
                 num_pieces=next_num_pieces,
-                player=other_player(curr_state.player),
+                player=self.__other_player(curr_state.player),
                 initial_state=False
             )
             for next_num_pieces in [
@@ -58,12 +67,13 @@ class NimStateManager(StateManager):
             if previous_state is None:
                 raise ValueError("Cannot create action str when previous state is not given and not in intial state")
 
-            s = f"Player {state.player + 1} selects {previous_state.num_pieces - state.num_pieces}: Remaining stones = {state.num_pieces}"
+            s = f"Player {state.player} selects {previous_state.num_pieces - state.num_pieces}: Remaining stones = {state.num_pieces}"
 
             if self.is_terminal_state(state):
-                s += f"\nPlayer {self.player_won(state) + 1} wins"
+                s += f"\nPlayer {self.player_won(state)} wins"
 
             return s
+
 
 if __name__ == '__main__':
     def testRandomPlaythrough():

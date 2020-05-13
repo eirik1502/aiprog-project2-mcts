@@ -1,8 +1,7 @@
 import random
 
-from games.game_general import GameState
-from games.mc_tree_funcs import DefaultPolicy
-from games.state_manager import StateManager
+from mcts.mcts_core.mc_tree_funcs import DefaultPolicy
+from mcts.mcts_core.state_manager import StateManager, GameState
 
 
 class RandomDefaultPolicy(DefaultPolicy):

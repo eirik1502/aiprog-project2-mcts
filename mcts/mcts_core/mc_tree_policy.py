@@ -1,9 +1,8 @@
 import math
-from typing import Callable
 
-from games.mc_tree import TreeNode
-from games.mc_tree_funcs import TreePolicy
-from games.utils import max_with_probabilities, min_with_probabilities
+from mcts.mcts_core.mc_tree import TreeNode
+from mcts.mcts_core.mc_tree_funcs import TreePolicy
+from mcts.mcts_core.utils import max_with_probabilities, min_with_probabilities
 
 
 def uct(const, visits, edge_traversals):

@@ -1,7 +1,8 @@
 from abc import ABC, abstractmethod
-from typing import List, Optional
+from typing import List, Optional, Any
 
-from games.game_general import Game, GameState
+
+GameState = Any
 
 
 class StateManager(ABC):

@@ -1,12 +1,10 @@
-import math
 import random
 from abc import ABC, abstractmethod
-from typing import Optional, Callable, Union, List
+from typing import Optional, Union, List
 
-from games.game_general import GameState
-from games.mc_tree import TreeNode, TreeNodeChildEdge
-from games.state_manager import StateManager
-from games.utils import max_with_probabilities, min_with_probabilities, repeat_str, fixed_size_str_center
+from mcts.mcts_core.mc_tree import TreeNode, TreeNodeChildEdge
+from mcts.mcts_core.state_manager import StateManager, GameState
+from mcts.mcts_core.utils import max_with_probabilities, repeat_str, fixed_size_str_center
 
 
 class TreePolicy(ABC):

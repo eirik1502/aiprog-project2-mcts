@@ -1,8 +1,8 @@
 from dataclasses import dataclass
 from typing import Optional, OrderedDict, List
 
-from games.game_general import GameState
-from games.utils import two_player_other_player
+from mcts.mcts_core.state_manager import GameState
+from mcts.mcts_core.utils import two_player_other_player
 
 
 @dataclass(eq=True)

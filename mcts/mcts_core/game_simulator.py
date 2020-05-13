@@ -1,67 +1,30 @@
 import random
 from dataclasses import dataclass
-from enum import Enum
-from typing import Tuple, List, Optional, Union
+from typing import Tuple, List
 
-from games.game_general import GameState
-from games.ledge_state_manager import LedgeStateManager
-from games.mc_default_policy import RandomDefaultPolicy
-from games.mc_tree import TreeNode
-from games.mc_tree_funcs import backprop_node_value, tree_search, print_tree, expand_node, \
+from mcts.mcts_core.mc_default_policy import RandomDefaultPolicy
+from mcts.mcts_core.mc_tree import TreeNode
+from mcts.mcts_core.mc_tree_funcs import backprop_node_value, tree_search, print_tree, expand_node, \
     TreePolicy, DefaultPolicy, rollout, follow_most_traversed_child_edge
-from games.mc_tree_policy import UctTreePolicy
-from games.nim_state_manager import NimStateManager
-from games.state_manager import StateManager
+from mcts.mcts_core.mc_tree_policy import UctTreePolicy
+from mcts.mcts_core.state_manager import StateManager, GameState
 
 
-@dataclass(eq=True)
-class NimGameConfig:
-    nim_initial_board_pieces: int = 10
-    nim_max_turn_pieces_remove: int = 3
-
-
-@dataclass(eq=True)
-class LedgeGameConfig:
-    ledge_initial_board: Tuple[int, ...] = (0, 0, 1, 0, 1, 0, 2)
-
-
-class GameType(Enum):
-    NIM = "NIM"
-    LEDGE = "LEDGE"
-
-
-@dataclass(eq=True)
-class GameSimulatorConfig(NimGameConfig, LedgeGameConfig):
+@dataclass(frozen=True)
+class GameSimulatorConfig:
+    game_state_manager: StateManager
     verbose: bool = True
     print_tree_every_move: bool = False
     simulations_per_move: int = 100
     starting_player: int = 0
-    game_type: GameType = GameType.NIM
 
 
-@dataclass(eq=True)
+@dataclass(frozen=True)
 class BatchedGameSimulatorConfig(GameSimulatorConfig):
     batch_size: int = 10
     print_full_tree_every_episode: bool = False
     print_full_tree_at_batch_end: bool = False
     print_only_chosen_tree_nodes: bool = False
-
-
-def _create_state_manager(config: GameSimulatorConfig, override_starting_player: int = -1):
-    starting_player = config.starting_player if override_starting_player != -1 else override_starting_player
-    if config.game_type == GameType.NIM:
-        return NimStateManager(
-            config.nim_initial_board_pieces,
-            config.nim_max_turn_pieces_remove,
-            starting_player
-        )
-    elif config.game_type == GameType.LEDGE:
-        return LedgeStateManager(
-            config.ledge_initial_board,
-            starting_player
-        )
-    else:
-        raise ValueError("the game type given in the GameSimulatorConfig is invalid")
 
 
 def rollout_evaluation(state_manager: StateManager, from_node: TreeNode, default_policy: DefaultPolicy) -> float:
@@ -84,13 +47,13 @@ def perform_simulation(state_manager, root_node, tree_policy: TreePolicy, defaul
     backprop_node_value(eval_node, value, root_node=root_node)  # the root node might have parents that we dont care about
 
 
-def perform_episode(config: GameSimulatorConfig, state_manager: Optional[StateManager] = None) -> Tuple[List[GameState], List[TreeNode]]:
+def perform_episode(config: GameSimulatorConfig) -> Tuple[List[GameState], List[TreeNode]]:
     simulations_per_move = config.simulations_per_move
     verbose = config.verbose
     do_print_tree = config.print_tree_every_move
     starting_player = config.starting_player if (0 <= config.starting_player <= 1) else random.randint(0, 1)
 
-    state_manager = _create_state_manager(config, override_starting_player=starting_player) if state_manager is None else state_manager
+    state_manager = config.game_state_manager  # _create_state_manager(config, override_starting_player=starting_player) if state_manager is None else state_manager
     tree_policy = UctTreePolicy(uct_c=1)
     default_policy = RandomDefaultPolicy(state_manager=state_manager)
 
@@ -114,7 +77,7 @@ def perform_episode(config: GameSimulatorConfig, state_manager: Optional[StateMa
         for i in range(simulations_per_move):
             perform_simulation(state_manager, curr_root_node, tree_policy, default_policy)
 
-        # choose next root node by the tree policy
+        # choose next root node
         # corresponding to making an actual move
         next_root_node_in_tree = follow_most_traversed_child_edge(curr_root_node)
         next_root_node = next_root_node_in_tree.copy_and_remove_tree()
@@ -149,7 +112,7 @@ def perform_batch_run(config: BatchedGameSimulatorConfig) -> Tuple[float, List[L
         print_tree(last_root_node_history[0], highlight_nodes=last_root_node_history, print_only_highlighted=print_only_chosen_tree_nodes)
 
     # a state manager to evaluate player_won, hence starting player is not important
-    state_manager = _create_state_manager(config)
+    state_manager = config.game_state_manager
 
     total_games = len(games_history)
     p2_wins = sum([
